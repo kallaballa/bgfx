@@ -20,11 +20,11 @@ namespace bgfx { namespace gl
 	PFNWGLCHOOSEPIXELFORMATARBPROC wglChoosePixelFormatARB;
 	PFNWGLCREATECONTEXTATTRIBSARBPROC wglCreateContextAttribsARB;
 	PFNWGLSWAPINTERVALEXTPROC wglSwapIntervalEXT;
-
+#if !BGFX_CONFIG_PASSIVE
 #	define GL_IMPORT(_optional, _proto, _func, _import) _proto _func
 #	include "glimports.h"
 #	undef GL_IMPORT
-
+#endif
 	template<typename ProtoT>
 	static ProtoT wglGetProc(const char* _name)
 	{

@@ -287,9 +287,9 @@ namespace stl = std;
 
 namespace bgfx
 {
-	extern InternalData g_internalData;
-	extern PlatformData g_platformData;
-	extern bool g_platformDataChangedSinceReset;
+	extern thread_local InternalData g_internalData;
+	extern thread_local PlatformData g_platformData;
+	extern thread_local bool g_platformDataChangedSinceReset;
 	extern void isFrameBufferValid(uint8_t _num, const Attachment* _attachment, bx::Error* _err);
 	extern void isIdentifierValid(const bx::StringView& _name, bx::Error* _err);
 
@@ -563,9 +563,9 @@ namespace bgfx
 	};
 
 	extern const uint32_t g_uniformTypeSize[UniformType::Count+1];
-	extern CallbackI* g_callback;
+	extern thread_local CallbackI* g_callback;
 	extern bx::AllocatorI* g_allocator;
-	extern Caps g_caps;
+	extern thread_local Caps g_caps;
 
 	typedef bx::StringT<&g_allocator> String;
 

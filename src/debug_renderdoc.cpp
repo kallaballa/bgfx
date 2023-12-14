@@ -64,8 +64,8 @@ namespace bgfx
 	}
 
 	pRENDERDOC_GetAPI RENDERDOC_GetAPI;
-	static RENDERDOC_API_1_1_2* s_renderDoc = NULL;
-	static void* s_renderDocDll = NULL;
+	static thread_local RENDERDOC_API_1_1_2* s_renderDoc = NULL;
+	static thread_local void* s_renderDocDll = NULL;
 
 	void* loadRenderDoc()
 	{

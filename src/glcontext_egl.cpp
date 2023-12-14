@@ -10,30 +10,37 @@
 
 #	if BGFX_USE_EGL
 
+#if BGFX_CONFIG_PASSIVE
+#	define GLFW_INCLUDE_NONE
+#	include <GLFW/glfw3.h>
+#endif
+
 #		if BX_PLATFORM_RPI
 #			include <X11/Xlib.h>
 #			include <bcm_host.h>
 #		endif // BX_PLATFORM_RPI
 
-#define _EGL_CHECK(_check, _call)                                   \
-	BX_MACRO_BLOCK_BEGIN                                            \
-		EGLBoolean success = _call;                                 \
-		_check(success, #_call "; EGL error 0x%x", eglGetError() ); \
-	BX_MACRO_BLOCK_END
-
-#if BGFX_CONFIG_DEBUG
-#	define EGL_CHECK(_call) _EGL_CHECK(BX_ASSERT, _call)
-#else
-#	define EGL_CHECK(_call) _call
-#endif // BGFX_CONFIG_DEBUG
-
+#      if !BGFX_CONFIG_PASSIVE
+#         define _EGL_CHECK(_check, _call)                                   \
+	         BX_MACRO_BLOCK_BEGIN                                            \
+		         EGLBoolean success = _call;                                 \
+   		         _check(success, #_call "; EGL error 0x%x", eglGetError() ); \
+	         BX_MACRO_BLOCK_END
+#         if BGFX_CONFIG_DEBUG
+#	         define EGL_CHECK(_call) _EGL_CHECK(BX_ASSERT, _call)
+#         else
+#	         define EGL_CHECK(_call) _call
+#         endif // BGFX_CONFIG_DEBUG
+#      endif
 namespace bgfx { namespace gl
 {
-#ifndef EGL_CONTEXT_FLAG_NO_ERROR_BIT_KHR
-#	define EGL_CONTEXT_FLAG_NO_ERROR_BIT_KHR 0x00000008
-#endif // EGL_CONTEXT_FLAG_NO_ERROR_BIT_KHR
+#if !BGFX_CONFIG_PASSIVE
+#   ifndef EGL_CONTEXT_FLAG_NO_ERROR_BIT_KHR
+#	   define EGL_CONTEXT_FLAG_NO_ERROR_BIT_KHR 0x00000008
+#   endif // EGL_CONTEXT_FLAG_NO_ERROR_BIT_KHR
+#endif
 
-#if BGFX_USE_GL_DYNAMIC_LIB
+#if BGFX_USE_GL_DYNAMIC_LIB && !BGFX_CONFIG_PASSIVE
 
 	typedef void (*EGLPROC)(void);
 
@@ -123,17 +130,19 @@ EGL_IMPORT
 	}
 #endif // BGFX_USE_GL_DYNAMIC_LIB
 
+#if !BGFX_CONFIG_PASSIVE
 #	define GL_IMPORT(_optional, _proto, _func, _import) _proto _func = NULL
 #	include "glimports.h"
-
+#endif
 	static EGLint s_contextAttrs[16];
 
 	struct SwapChainGL
 	{
 		SwapChainGL(EGLDisplay _display, EGLConfig _config, EGLContext _context, EGLNativeWindowType _nwh)
-			: m_nwh(_nwh)
+    		: m_nwh(_nwh)
 			, m_display(_display)
 		{
+#if !BGFX_CONFIG_PASSIVE
 			EGLSurface defaultSurface = eglGetCurrentSurface(EGL_DRAW);
 
 			if (EGLNativeWindowType(0) == _nwh)
@@ -159,10 +168,12 @@ EGL_IMPORT
 			swapBuffers();
 
 			EGL_CHECK(eglMakeCurrent(m_display, defaultSurface, defaultSurface, _context) );
+#endif
 		}
 
 		~SwapChainGL()
 		{
+#if !BGFX_CONFIG_PASSIVE
 			EGLSurface defaultSurface = eglGetCurrentSurface(EGL_DRAW);
 			EGLContext defaultContext = eglGetCurrentContext();
 
@@ -170,16 +181,23 @@ EGL_IMPORT
 			EGL_CHECK(eglDestroyContext(m_display, m_context) );
 			EGL_CHECK(eglDestroySurface(m_display, m_surface) );
 			EGL_CHECK(eglMakeCurrent(m_display, defaultSurface, defaultSurface, defaultContext) );
+#endif
 		}
 
 		void makeCurrent()
 		{
+#if !BGFX_CONFIG_PASSIVE
 			EGL_CHECK(eglMakeCurrent(m_display, m_surface, m_surface, m_context) );
+#endif
 		}
 
 		void swapBuffers()
 		{
+#if BGFX_CONFIG_PASSIVE
+//			glfwSwapBuffers(glfwGetCurrentContext());
+#else
 			EGL_CHECK(eglSwapBuffers(m_display, m_surface) );
+#endif
 		}
 
 		EGLNativeWindowType m_nwh;
@@ -194,6 +212,7 @@ EGL_IMPORT
 
 	void GlContext::create(uint32_t _width, uint32_t _height, uint32_t _flags)
 	{
+#if !BGFX_CONFIG_PASSIVE
 		BX_UNUSED(_flags);
 
 #	if BX_PLATFORM_RPI
@@ -420,10 +439,12 @@ EGL_IMPORT
 		import();
 
 		g_internalData.context = m_context;
+#endif
 	}
 
 	void GlContext::destroy()
 	{
+#if !BGFX_CONFIG_PASSIVE
 		if (NULL != m_display)
 		{
 			EGL_CHECK(eglMakeCurrent(m_display, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT) );
@@ -438,10 +459,12 @@ EGL_IMPORT
 #	if BX_PLATFORM_RPI
 		bcm_host_deinit();
 #	endif // BX_PLATFORM_RPI
+#endif
 	}
 
 	void GlContext::resize(uint32_t _width, uint32_t _height, uint32_t _flags)
 	{
+#if !BGFX_CONFIG_PASSIVE
 #	if BX_PLATFORM_ANDROID
 		if (NULL != m_display)
 		{
@@ -468,6 +491,7 @@ EGL_IMPORT
 			bool vsync = !!(_flags&BGFX_RESET_VSYNC);
 			EGL_CHECK(eglSwapInterval(m_display, vsync ? 1 : 0) );
 		}
+#endif
 	}
 
 	uint64_t GlContext::getCaps() const
@@ -494,23 +518,30 @@ EGL_IMPORT
 
 	void GlContext::swap(SwapChainGL* _swapChain)
 	{
+
 		makeCurrent(_swapChain);
 
 		if (NULL == _swapChain)
 		{
 			if (NULL != m_display)
 			{
+#if BGFX_CONFIG_PASSIVE
+//				glfwSwapBuffers(glfwGetCurrentContext());
+#else
 				EGL_CHECK(eglSwapBuffers(m_display, m_surface) );
+#endif
 			}
 		}
 		else
 		{
 			_swapChain->swapBuffers();
 		}
+
 	}
 
 	void GlContext::makeCurrent(SwapChainGL* _swapChain)
 	{
+#if !BGFX_CONFIG_PASSIVE
 		if (m_current != _swapChain)
 		{
 			m_current = _swapChain;
@@ -527,10 +558,12 @@ EGL_IMPORT
 				_swapChain->makeCurrent();
 			}
 		}
+#endif
 	}
 
 	void GlContext::import()
 	{
+#if !BGFX_CONFIG_PASSIVE
 		BX_TRACE("Import:");
 
 #	if BX_PLATFORM_WINDOWS || BX_PLATFORM_LINUX
@@ -574,9 +607,11 @@ EGL_IMPORT
 
 #	endif // BX_PLATFORM_
 
+#if !BGFX_CONFIG_PASSIVE
 #	include "glimports.h"
-
+#endif
 #	undef GL_EXTENSION
+#endif
 	}
 
 } /* namespace gl */ } // namespace bgfx
