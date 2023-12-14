@@ -8,9 +8,18 @@
 
 #if BGFX_USE_EGL
 
-#include <EGL/egl.h>
-#include <EGL/eglext.h>
-
+#if !BGFX_CONFIG_PASSIVE
+#   include <EGL/egl.h>
+#   include <EGL/eglext.h>
+#else
+#define EGLDisplay void*
+#define EGLint int
+#define EGLBoolean int
+#define EGLSurface void*
+#define EGLConfig void*
+#define EGLContext void*
+#define EGLNativeWindowType void*
+#endif
 // EGL pulls X11 crap...
 #if defined(None)
 #	undef None
@@ -55,7 +64,6 @@ namespace bgfx { namespace gl
 		{
 			return NULL != m_context;
 		}
-
 		void* m_eglLibrary;
 		SwapChainGL* m_current;
 		EGLConfig  m_config;

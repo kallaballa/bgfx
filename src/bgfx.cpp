@@ -250,14 +250,14 @@ namespace bgfx
 #endif // BGFX_CONFIG_MEMORY_TRACKING
 	};
 
-	static CallbackStub*  s_callbackStub  = NULL;
-	static AllocatorStub* s_allocatorStub = NULL;
-	static bool s_graphicsDebuggerPresent = false;
+	static thread_local CallbackStub*  s_callbackStub  = NULL;
+	static thread_local AllocatorStub* s_allocatorStub = NULL;
+	static thread_local bool s_graphicsDebuggerPresent = false;
 
-	CallbackI* g_callback = NULL;
+	thread_local CallbackI* g_callback = NULL;
 	bx::AllocatorI* g_allocator = NULL;
 
-	Caps g_caps;
+	thread_local Caps g_caps;
 
 #if BGFX_CONFIG_MULTITHREADED && !defined(BX_THREAD_LOCAL)
 	class ThreadData
@@ -298,18 +298,18 @@ namespace bgfx
 		bx::TlsData m_tls;
 	};
 
-	static ThreadData s_threadIndex(0);
+	static thread_local ThreadData s_threadIndex(0);
 #elif !BGFX_CONFIG_MULTITHREADED
-	static uint32_t s_threadIndex(0);
+	static thread_local uint32_t s_threadIndex(0);
 #else
 	static BX_THREAD_LOCAL uint32_t s_threadIndex(0);
 #endif
 
-	static Context* s_ctx = NULL;
-	static bool s_renderFrameCalled = false;
-	InternalData g_internalData;
-	PlatformData g_platformData;
-	bool g_platformDataChangedSinceReset = false;
+	static thread_local Context* s_ctx = NULL;
+	static thread_local bool s_renderFrameCalled = false;
+	thread_local InternalData g_internalData;
+	thread_local PlatformData g_platformData;
+	thread_local bool g_platformDataChangedSinceReset = false;
 
 	static Handle::TypeName s_typeName[] =
 	{

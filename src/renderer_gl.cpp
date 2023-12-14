@@ -5,6 +5,9 @@
 
 #include "bgfx_p.h"
 
+
+
+
 #if (BGFX_CONFIG_RENDERER_OPENGLES || BGFX_CONFIG_RENDERER_OPENGL)
 #	include "renderer_gl.h"
 #	include <bx/timer.h>
@@ -13,7 +16,7 @@
 
 namespace bgfx { namespace gl
 {
-	static char s_viewName[BGFX_CONFIG_MAX_VIEWS][BGFX_CONFIG_MAX_VIEW_NAME];
+	static thread_local char s_viewName[BGFX_CONFIG_MAX_VIEWS][BGFX_CONFIG_MAX_VIEW_NAME];
 
 	inline void setViewType(ViewId _view, const bx::StringView _str)
 	{
@@ -322,7 +325,7 @@ namespace bgfx { namespace gl
 	};
 	BX_STATIC_ASSERT(TextureFormat::Count == BX_COUNTOF(s_textureFormat) );
 
-	static bool s_textureFilter[TextureFormat::Count+1];
+	static thread_local bool s_textureFilter[TextureFormat::Count+1];
 
 	static GLenum s_rboFormat[] =
 	{
@@ -1270,9 +1273,9 @@ namespace bgfx { namespace gl
 		return 0 == err ? result : 0;
 	}
 
-	static uint64_t s_currentlyEnabledVertexAttribArrays = 0;
-	static uint64_t s_vertexAttribArraysPendingDisable   = 0;
-	static uint64_t s_vertexAttribArraysPendingEnable    = 0;
+	static thread_local uint64_t s_currentlyEnabledVertexAttribArrays = 0;
+	static thread_local uint64_t s_vertexAttribArraysPendingDisable   = 0;
+	static thread_local uint64_t s_vertexAttribArraysPendingEnable    = 0;
 
 	void lazyEnableVertexAttribArray(GLuint index)
 	{
@@ -2839,12 +2842,12 @@ namespace bgfx { namespace gl
 
 				if (drawIndirectSupported)
 				{
-					if (NULL == glMultiDrawArraysIndirect
-					||  NULL == glMultiDrawElementsIndirect)
-					{
-						glMultiDrawArraysIndirect   = stubMultiDrawArraysIndirect;
-						glMultiDrawElementsIndirect = stubMultiDrawElementsIndirect;
-					}
+//					if (NULL == glMultiDrawArraysIndirect
+//					||  NULL == glMultiDrawElementsIndirect)
+//					{
+//						glMultiDrawArraysIndirect   = stubMultiDrawArraysIndirect;
+//						glMultiDrawElementsIndirect = stubMultiDrawElementsIndirect;
+//					}
 				}
 
 				g_caps.supported |= drawIndirectSupported
@@ -2857,11 +2860,11 @@ namespace bgfx { namespace gl
 					: 0
 					;
 
-				if (BX_ENABLED(BX_PLATFORM_EMSCRIPTEN)
-				||  NULL == glPolygonMode)
-				{
-					glPolygonMode = stubPolygonMode;
-				}
+//				if (BX_ENABLED(BX_PLATFORM_EMSCRIPTEN)
+//				||  NULL == glPolygonMode)
+//				{
+//					glPolygonMode = stubPolygonMode;
+//				}
 
 				if (s_extension[Extension::ARB_copy_image].m_supported
 				||  s_extension[Extension::EXT_copy_image].m_supported
@@ -2927,12 +2930,12 @@ namespace bgfx { namespace gl
 						);
 				}
 
-//				if (s_extension[Extension::ARB_clip_control].m_supported)
-//				{
-//					GL_CHECK(glClipControl(GL_LOWER_LEFT, GL_ZERO_TO_ONE) );
-//					g_caps.originBottomLeft = true;
-//				}
-//				else
+				if (s_extension[Extension::ARB_clip_control].m_supported)
+				{
+					GL_CHECK(glClipControl(GL_LOWER_LEFT, GL_ZERO_TO_ONE) );
+					g_caps.originBottomLeft = true;
+				}
+				else
 				{
 					g_caps.homogeneousDepth = true;
 					g_caps.originBottomLeft = true;
@@ -3083,23 +3086,23 @@ namespace bgfx { namespace gl
 						{
 							g_caps.supported |= BGFX_CAPS_INSTANCING;
 						}
-						else if (NULL != glVertexAttribDivisorNV
-							 &&  NULL != glDrawArraysInstancedNV
-							 &&  NULL != glDrawElementsInstancedNV)
-						{
-							glVertexAttribDivisor   = glVertexAttribDivisorNV;
-							glDrawArraysInstanced   = glDrawArraysInstancedNV;
-							glDrawElementsInstanced = glDrawElementsInstancedNV;
-
-							g_caps.supported |= BGFX_CAPS_INSTANCING;
-						}
+//						else if (NULL != glVertexAttribDivisorNV
+//							 &&  NULL != glDrawArraysInstancedNV
+//							 &&  NULL != glDrawElementsInstancedNV)
+//						{
+//							glVertexAttribDivisor   = glVertexAttribDivisorNV;
+//							glDrawArraysInstanced   = glDrawArraysInstancedNV;
+//							glDrawElementsInstanced = glDrawElementsInstancedNV;
+//
+//							g_caps.supported |= BGFX_CAPS_INSTANCING;
+//						}
 					}
 
 					if (0 == (g_caps.supported & BGFX_CAPS_INSTANCING) )
 					{
-						glVertexAttribDivisor   = stubVertexAttribDivisor;
-						glDrawArraysInstanced   = stubDrawArraysInstanced;
-						glDrawElementsInstanced = stubDrawElementsInstanced;
+//						glVertexAttribDivisor   = stubVertexAttribDivisor;
+//						glDrawArraysInstanced   = stubDrawArraysInstanced;
+//						glDrawElementsInstanced = stubDrawElementsInstanced;
 					}
 				}
 
@@ -3129,12 +3132,12 @@ namespace bgfx { namespace gl
 					}
 				}
 
-				if (NULL == glPushDebugGroup
-				||  NULL == glPopDebugGroup)
-				{
-					glPushDebugGroup = stubPushDebugGroup;
-					glPopDebugGroup  = stubPopDebugGroup;
-				}
+//				if (NULL == glPushDebugGroup
+//				||  NULL == glPopDebugGroup)
+//				{
+//					glPushDebugGroup = stubPushDebugGroup;
+//					glPopDebugGroup  = stubPopDebugGroup;
+//				}
 
 				if (s_extension[Extension::ARB_seamless_cube_map].m_supported)
 				{
@@ -3147,30 +3150,30 @@ namespace bgfx { namespace gl
 					GL_CHECK(glProvokingVertex(GL_FIRST_VERTEX_CONVENTION) );
 				}
 
-				if (NULL == glInsertEventMarker
-				||  !s_extension[Extension::EXT_debug_marker].m_supported)
-				{
-					glInsertEventMarker = stubInsertEventMarker;
-				}
+//				if (NULL == glInsertEventMarker
+//				||  !s_extension[Extension::EXT_debug_marker].m_supported)
+//				{
+//					glInsertEventMarker = stubInsertEventMarker;
+//				}
 
 				m_maxLabelLen = BX_ENABLED(BGFX_CONFIG_RENDERER_OPENGLES >= 32) || BX_ENABLED(BGFX_CONFIG_RENDERER_OPENGL >= 43) || s_extension[Extension::KHR_debug].m_supported ? uint16_t(glGet(GL_MAX_LABEL_LENGTH) ) : 0;
 
 				setGraphicsDebuggerPresent(s_extension[Extension::EXT_debug_tool].m_supported);
 
-				if (NULL == glObjectLabel)
-				{
-					glObjectLabel = stubObjectLabel;
-				}
-
-				if (NULL == glInvalidateFramebuffer)
-				{
-					glInvalidateFramebuffer = stubInvalidateFramebuffer;
-				}
-
-				if (NULL == glFramebufferTexture)
-				{
-					glFramebufferTexture = stubFramebufferTexture;
-				}
+//				if (NULL == glObjectLabel)
+//				{
+//					glObjectLabel = stubObjectLabel;
+//				}
+//
+//				if (NULL == glInvalidateFramebuffer)
+//				{
+//					glInvalidateFramebuffer = stubInvalidateFramebuffer;
+//				}
+//
+//				if (NULL == glFramebufferTexture)
+//				{
+//					glFramebufferTexture = stubFramebufferTexture;
+//				}
 
 				if (m_timerQuerySupport)
 				{
@@ -3615,7 +3618,7 @@ namespace bgfx { namespace gl
 
 		void setMarker(const char* _marker, uint16_t _len) override
 		{
-			GL_CHECK(glInsertEventMarker(_len, _marker) );
+//			GL_CHECK(glInsertEventMarkerEXT(_len, _marker) );
 		}
 
 		virtual void setName(Handle _handle, const char* _name, uint16_t _len) override
@@ -3906,26 +3909,26 @@ namespace bgfx { namespace gl
 					GL_CHECK(glGenTextures(BX_COUNTOF(m_msaaBackBufferTextures), m_msaaBackBufferTextures) );
 					GL_CHECK(glBindTexture(GL_TEXTURE_2D, m_msaaBackBufferTextures[0]) );
 					GL_CHECK(glTexStorage2D(GL_TEXTURE_2D, 1, storageFormat, _width, _height) );
-					GL_CHECK(glFramebufferTexture2DMultisampleEXT(
-						  GL_FRAMEBUFFER
-						, GL_COLOR_ATTACHMENT0
-						, GL_TEXTURE_2D
-						, m_msaaBackBufferTextures[0]
-						, 0
-						, _msaa
-						) );
+//					GL_CHECK(glFramebufferTexture2DMultisampleIMG(
+//						  GL_FRAMEBUFFER
+//						, GL_COLOR_ATTACHMENT0
+//						, GL_TEXTURE_2D
+//						, m_msaaBackBufferTextures[0]
+//						, 0
+//						, _msaa
+//						) );
 					GL_CHECK(glBindFramebuffer(GL_FRAMEBUFFER, m_msaaBackBufferFbo) );
 
 					GL_CHECK(glBindTexture(GL_TEXTURE_2D, m_msaaBackBufferTextures[1]) );
 					GL_CHECK(glTexStorage2D(GL_TEXTURE_2D, 1, GL_DEPTH24_STENCIL8, _width, _height) );
-					GL_CHECK(glFramebufferTexture2DMultisampleEXT(
-						  GL_FRAMEBUFFER
-						, attachment
-						, GL_TEXTURE_2D
-						, m_msaaBackBufferTextures[1]
-						, 0
-						, _msaa
-						) );
+//					GL_CHECK(glFramebufferTexture2DMultisampleEXT(
+//						  GL_FRAMEBUFFER
+//						, attachment
+//						, GL_TEXTURE_2D
+//						, m_msaaBackBufferTextures[1]
+//						, 0
+//						, _msaa
+//						) );
 					GL_CHECK(glBindFramebuffer(GL_FRAMEBUFFER, 0) );
 
 					BX_ASSERT(GL_FRAMEBUFFER_COMPLETE == glCheckFramebufferStatus(GL_FRAMEBUFFER)
@@ -4815,7 +4818,7 @@ namespace bgfx { namespace gl
 		GLuint m_currentFbo;
 	};
 
-	RendererContextGL* s_renderGL;
+	static thread_local RendererContextGL* s_renderGL;
 
 	RendererContextI* rendererCreate(const Init& _init)
 	{
@@ -6886,9 +6889,9 @@ namespace bgfx { namespace gl
 				BGFX_FATAL(false, bgfx::Fatal::InvalidShader, "Failed to compile shader. %d: %s", compiled, log);
 			}
 			else if (BX_ENABLED(BGFX_CONFIG_DEBUG)
-				 &&  s_extension[Extension::ANGLE_translated_shader_source].m_supported
-				 &&  NULL != glGetTranslatedShaderSourceANGLE)
+				 &&  s_extension[Extension::ANGLE_translated_shader_source].m_supported)
 			{
+#ifdef glGetTranslatedShaderSourceANGLE
 				GLsizei len;
 				GL_CHECK(glGetShaderiv(m_id, GL_TRANSLATED_SHADER_SOURCE_LENGTH_ANGLE, &len) );
 
@@ -6896,6 +6899,7 @@ namespace bgfx { namespace gl
 				GL_CHECK(glGetTranslatedShaderSourceANGLE(m_id, len, &len, source) );
 
 				BX_TRACE("ANGLE source (len: %d):\n%s\n####", len, source);
+#endif
 			}
 		}
 	}
@@ -7498,7 +7502,7 @@ namespace bgfx { namespace gl
 		RenderBind currentBind;
 		currentBind.clear();
 
-		static ViewState viewState;
+		static thread_local ViewState viewState;
 		viewState.reset(_render);
 
 		ProgramHandle currentProgram = BGFX_INVALID_HANDLE;
@@ -8401,14 +8405,14 @@ namespace bgfx { namespace gl
 
 								uintptr_t args = draw.m_startIndirect * BGFX_CONFIG_DRAW_INDIRECT_STRIDE;
 
-								if (isValid(draw.m_numIndirectBuffer) )
+								if (false && isValid(draw.m_numIndirectBuffer) )
 								{
-									GL_CHECK(glMultiDrawElementsIndirectCount(prim.m_type, indexFormat
-										, (void*)args
-										, numOffsetIndirect
-										, numDrawIndirect
-										, BGFX_CONFIG_DRAW_INDIRECT_STRIDE
-										) );
+//									GL_CHECK(glMultiDrawElementsIndirectCount(prim.m_type, indexFormat
+//										, (void*)args
+//										, numOffsetIndirect
+//										, numDrawIndirect
+//										, BGFX_CONFIG_DRAW_INDIRECT_STRIDE
+//										) );
 								}
 								else
 								{
@@ -8428,14 +8432,14 @@ namespace bgfx { namespace gl
 
 								uintptr_t args = draw.m_startIndirect * BGFX_CONFIG_DRAW_INDIRECT_STRIDE;
 
-								if (isValid(draw.m_numIndirectBuffer) )
+								if (false && isValid(draw.m_numIndirectBuffer) )
 								{
-									GL_CHECK(glMultiDrawArraysIndirectCount(prim.m_type
-										, (void*)args
-										, numOffsetIndirect
-										, numDrawIndirect
-										, BGFX_CONFIG_DRAW_INDIRECT_STRIDE
-										) );
+//									GL_CHECK(glMultiDrawArraysIndirectCount(prim.m_type
+//										, (void*)args
+//										, numOffsetIndirect
+//										, numDrawIndirect
+//										, BGFX_CONFIG_DRAW_INDIRECT_STRIDE
+//										) );
 								}
 								else
 								{
@@ -8576,13 +8580,13 @@ namespace bgfx { namespace gl
 		int64_t timeEnd = bx::getHPCounter();
 		int64_t frameTime = timeEnd - timeBegin;
 
-		static int64_t min = frameTime;
-		static int64_t max = frameTime;
+		static thread_local int64_t min = frameTime;
+		static thread_local int64_t max = frameTime;
 		min = min > frameTime ? frameTime : min;
 		max = max < frameTime ? frameTime : max;
 
-		static uint32_t maxGpuLatency = 0;
-		static double   maxGpuElapsed = 0.0f;
+		static thread_local uint32_t maxGpuLatency = 0;
+		static thread_local double   maxGpuElapsed = 0.0f;
 		double elapsedGpuMs = 0.0;
 
 		if (UINT32_MAX != frameQueryIdx)
@@ -8623,7 +8627,7 @@ namespace bgfx { namespace gl
 			m_needPresent = true;
 			TextVideoMem& tvm = m_textVideoMem;
 
-			static int64_t next = timeEnd;
+			static thread_local int64_t next = timeEnd;
 
 			if (timeEnd >= next)
 			{

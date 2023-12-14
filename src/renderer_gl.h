@@ -6,6 +6,7 @@
 #ifndef BGFX_RENDERER_GL_H_HEADER_GUARD
 #define BGFX_RENDERER_GL_H_HEADER_GUARD
 
+
 #define BGFX_USE_EGL ( (BGFX_CONFIG_RENDERER_OPENGL || BGFX_CONFIG_RENDERER_OPENGLES) && (0 \
 	|| BX_PLATFORM_ANDROID                                                                  \
 	|| BX_PLATFORM_LINUX                                                                    \
@@ -25,6 +26,7 @@
 	|| BX_PLATFORM_LINUX           \
 	|| BX_PLATFORM_WINDOWS         \
 	)
+
 
 // Keep a state cache of GL uniform values to avoid redundant uploads
 // on the following platforms.
@@ -57,27 +59,27 @@
 	BX_MACRO_BLOCK_END
 
 #if BGFX_CONFIG_RENDERER_OPENGL
-#	if BGFX_CONFIG_RENDERER_OPENGL >= 31
-#		include <gl/glcorearb.h>
-#	else
-#		if BX_PLATFORM_LINUX
-#			define GL_PROTOTYPES
-#			define GL_GLEXT_LEGACY
-#			include <GL/gl.h>
-#			undef GL_PROTOTYPES
-#		elif BX_PLATFORM_WINDOWS
-#			ifndef WIN32_LEAN_AND_MEAN
-#				define WIN32_LEAN_AND_MEAN
-#			endif // WIN32_LEAN_AND_MEAN
-#			include <windows.h>
-#			include <GL/gl.h>
+#		if BGFX_CONFIG_RENDERER_OPENGL >= 31
+#			define GL_GLEXT_PROTOTYPES
+#			include <gl/glcorearb.h>
 #		else
-#			include <GL/gl.h>
-#		endif // BX_PLATFORM_
+#			if BX_PLATFORM_LINUX
+#				define GL_PROTOTYPES
+#				define GL_GLEXT_LEGACY
+#				include <GL/gl.h>
+#				undef GL_PROTOTYPES
+#			elif BX_PLATFORM_WINDOWS
+#				ifndef WIN32_LEAN_AND_MEAN
+#					define WIN32_LEAN_AND_MEAN
+#				endif // WIN32_LEAN_AND_MEAN
+#				include <windows.h>
+#				include <GL/gl.h>
+#			else
+#				include <GL/gl.h>
+#			endif // BX_PLATFORM_
 
-#		include <gl/glext.h>
-#	endif // BGFX_CONFIG_RENDERER_OPENGL >= 31
-
+#			include <gl/glext.h>
+#   	endif // BGFX_CONFIG_RENDERER_OPENGL >= 31
 #elif BGFX_CONFIG_RENDERER_OPENGLES
 typedef double GLdouble;
 #	if BGFX_CONFIG_RENDERER_OPENGLES < 30
@@ -106,17 +108,20 @@ typedef uint64_t GLuint64;
 #		define GL_DEPTH_COMPONENT32 GL_DEPTH_COMPONENT32_OES
 #		define GL_UNSIGNED_INT_24_8 GL_UNSIGNED_INT_24_8_OES
 #	elif BGFX_CONFIG_RENDERER_OPENGLES >= 30
-#		include <GLES3/gl3platform.h>
-#		if BGFX_CONFIG_RENDERER_OPENGLES >= 32
-#			include <GLES3/gl32.h>
-#		elif BGFX_CONFIG_RENDERER_OPENGLES >= 31
-#			include <GLES3/gl31.h>
+#		if BGFX_CONFIG_PASSIVE
+#	    	include <glad/gles3.h>
 #		else
-#			include <GLES3/gl3.h>
-#		endif // BGFX_CONFIG_RENDERER_OPENGLES
-#		include <GLES2/gl2ext.h>
-#	endif // BGFX_CONFIG_RENDERER_
-
+#			include <GLES3/gl3platform.h>
+#			if BGFX_CONFIG_RENDERER_OPENGLES >= 32
+#				include <GLES3/gl32.h>
+#			elif BGFX_CONFIG_RENDERER_OPENGLES >= 31
+#				include <GLES3/gl31.h>
+#			else
+#				include <GLES3/gl3.h>
+#			endif // BGFX_CONFIG_RENDERER_OPENGLES
+#			include <GLES2/gl2ext.h>
+#		endif // BGFX_CONFIG_RENDERER_
+#	endif
 #endif // BGFX_CONFIG_RENDERER_OPENGL
 
 #include "renderer.h"
@@ -1126,7 +1131,6 @@ typedef uint64_t GLuint64;
 #ifndef GL_TEXTURE_LOD_BIAS
 #	define GL_TEXTURE_LOD_BIAS 0x8501
 #endif // GL_TEXTURE_LOD_BIAS
-
 #if BGFX_USE_EGL
 #	include "glcontext_egl.h"
 #elif BGFX_USE_HTML5
@@ -1134,6 +1138,7 @@ typedef uint64_t GLuint64;
 #elif BGFX_USE_WGL
 #	include "glcontext_wgl.h"
 #endif // BGFX_USE_*
+
 
 #ifndef GL_APIENTRY
 #	define GL_APIENTRY APIENTRY
@@ -1146,20 +1151,6 @@ typedef uint64_t GLuint64;
 #if !BGFX_CONFIG_RENDERER_OPENGL
 #	define glClearDepth glClearDepthf
 #endif // !BGFX_CONFIG_RENDERER_OPENGL
-
-namespace bgfx
-{
-	class UniformBuffer;
-} // namespace bgfx
-
-namespace bgfx { namespace gl
-{
-	void dumpExtensions(const char* _extensions);
-
-	void lazyEnableVertexAttribArray(GLuint index);
-	void lazyDisableVertexAttribArray(GLuint index);
-
-	const char* glEnumName(GLenum _enum);
 
 #define _GL_CHECK(_check, _call)                                                                    \
 	BX_MACRO_BLOCK_BEGIN                                                                \
@@ -1180,11 +1171,26 @@ namespace bgfx { namespace gl
 #	define GL_CHECK_I(_call) _call
 #endif // BGFX_CONFIG_DEBUG
 
+#if !BGFX_CONFIG_PASSIVE
 #define GL_IMPORT_TYPEDEFS 1
 #define GL_IMPORT(_optional, _proto, _func, _import) extern _proto _func
 #include "glimports.h"
+#endif
+namespace bgfx
+{
+	class UniformBuffer;
+} // namespace bgfx
 
-	class UniformStateCache
+namespace bgfx { namespace gl
+{
+	void dumpExtensions(const char* _extensions);
+
+	void lazyEnableVertexAttribArray(GLuint index);
+	void lazyDisableVertexAttribArray(GLuint index);
+
+	const char* glEnumName(GLenum _enum);
+
+    class UniformStateCache
 	{
 	public:
 		struct f4   { float val[ 4]; bool operator ==(const f4   &rhs) { const uint64_t *a = (const uint64_t *)this; const uint64_t *b = (const uint64_t *)&rhs; return a[0] == b[0] && a[1] == b[1]; }};
